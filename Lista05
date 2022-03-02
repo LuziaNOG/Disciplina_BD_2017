@@ -52,7 +52,7 @@ D.cpf_gerente = E.cpf and
 E.enome = 'Joao Silva'
 
 7) select AVG (E.salario)
-from EMpregados E, departamentos D
+from Empregados E, departamentos D
 where D.dnome = 'Vendas' and 
 D.dnumero = E.dnumero
 
