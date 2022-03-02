@@ -1,0 +1,20 @@
+Perguntas
+1: Liste os departamentos:
+2: Liste o nome e salário de todos os empregados.
+3: Liste os nomes e os cpf do gerente dos departamentos:
+4: Liste os empregados do departamento 1010:
+5: Selecione os empregados com salário maior que R$3.000:
+6: Recupere os nome de todos os empregados que não tem supervisor.
+7: Liste os empregados que tem salario entre 1000 e 2000 reais.
+8: Liste para cada projetos o numero de empregados que nele trabalha
+
+Respostas
+
+1) select * from departamentos
+2) select enome,salario from empregados
+3) select E.enome,E.cpf from empregados E,departamentos D where E.cpf=D.cpf_gerente
+4) select * from empregados where dnumero=20
+5) select * from empregado where salario > 1200
+6) select enome from empregados where cpf_supervisor is null
+7) select * from empregados where salario between 1000 and 2000
+8) select p.pnumero,count(T.cpf_emp) from projetos P , trabalha T where p.pnumero=T.pnumero group by p.pnumero 

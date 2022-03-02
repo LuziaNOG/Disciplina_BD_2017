@@ -1,0 +1,77 @@
+##############################Esquema########################################
+Empregados(CPF, Enome, Salario,CPF_Supervisor, dnumero)
+Projetos(pnumero, pnome, dnumero)
+Departamento(dnumero, dnome, CPF_gerente)
+Trabalha(CPF_Emp, pnumero)
+
+##############################Questões #######################################
+
+1. Selecione o nome dos empregados em ordem crescente que trabalham no
+departamento D5 e ganham mais do que R$5.000.
+2. Liste os nomes dos supervisores dos empregados que ganham mais do que R$5.000.
+3. Liste o nome e salário de todos os empregados que ganham mais que o seu
+supervisor.
+4. Obtenha o nome do gerente de departamento de cada projeto.
+5. Liste os nomes dos projetos que têm um empregado chamado “JOAO SILVA” que
+trabalha no projeto.
+6. Liste os nomes dos projetos que têm um gerente chamado “JOAO SILVA” que gerencia
+o departamento que controla o projeto.
+7. Qual é a média de salário dos empregados no departamento 'VENDAS'?
+8. Para cada empregado obtenha o número de projetos que ele trabalha.
+9. Para cada projeto obtenha o número de empregados que trabalha no projeto.
+10. Para cada projeto que tem mais de 3 empregados alocados, obtenha a quantidade de
+empregados que trabalham no projeto.
+
+####################################################################################
+
+1) select E.enome
+from Empregados E,departamento D
+wheere E.dnumero=D.dnumero
+and D.dnome='d5' and E.salario>5000
+order by E.enome
+
+2)select E 
+from Empregados E,Empregados S
+where E.cpf_supervisor=S.cpf and E.salario >5000
+
+3) select Eenome,E.salario from Empregados E,Empregados S
+where E.cpf_supersivor=S.cpf and E.salario > S.salario
+
+4) select P.pronome , E.enome
+from Projeto P,Departamento D,Empregado E 
+where P.dnumero=D.numero and D.cpf.gerente=E.cpf
+
+5)select P.pnome 
+from Projetos P,Empregados E, Trabalha T
+where T.cpf_emp = E.cpf and T.pnumero = P.pnumero and E.enome = 'Joao Silva'
+
+6)select P.pnome
+from projetos P, empregados E, departamentos D
+where P.dnumero = D.dnumero and 
+D.cpf_gerente = E.cpf and
+E.enome = 'Joao Silva'
+
+7) select AVG (E.salario)
+from EMpregados E, departamentos D
+where D.dnome = 'Vendas' and 
+D.dnumero = E.dnumero
+
+8)select E.cpf,count (T.pnumero)
+from empregados E, trabalha T
+where E.cpf=T.cpf_emp
+group by e.cpf
+
+9)select P.pnumero,count (T.cpf_emp)
+from projetos P, trabalha T
+where P.pnumero=T.pnumero
+group by P.pnumero
+
+
+10)select P.pnumero,count (T.cpf_emp)
+from projetos P, trabalha T
+where P.pnumero=T.pnumero
+group by P.pnumero
+having COUNT(T.cpf_emp)>3
+
+
+

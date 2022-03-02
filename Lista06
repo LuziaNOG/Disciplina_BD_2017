@@ -1,0 +1,300 @@
+##############################Esquema##########################################
+Fornecedor (FID, FNOME, CIDADE)
+Peça (PID, PNOME, COR)
+Projetos (JID, JNOME, CIDADE)
+FornPecaProj (FID, PID, JID, QTD)
+
+################################################################################
+
+CREATE TABLE Fornecedor
+(
+  fnome varchar(20),
+  cidade varchar(20),
+  fid integer,
+  CONSTRAINT f_pkey PRIMARY KEY (fid)
+);
+
+CREATE TABLE projeto
+(
+  jid integer,
+  jnome varchar(20),
+  cidade varchar(20),
+  CONSTRAINT j_pkey PRIMARY KEY (jid)
+);
+
+CREATE TABLE peca
+(
+  pid integer,
+  pnome varchar(20),
+  cor varchar(20),
+  CONSTRAINT p_pkey PRIMARY KEY (pid)
+);
+CREATE TABLE fornPecaProj
+(
+  fid integer NOT NULL,
+  pid integer NOT NULL,
+  jid integer NOT NULL,
+  qtd integer NOT NULL,
+  CONSTRAINT p_pkey1 PRIMARY KEY (fid,pid,jid),
+  constraint fk_1 foreign key(fid) references fornecedor(fid),
+  constraint fk_2 foreign key(pid) references peca(pid),
+  constraint fk_3 foreign key(jid) references projeto(jid) 
+);
+
+insert into Fornecedor values ('Maria','Fortaleza',1);
+insert into Fornecedor values('Lucia','Quixada',2);
+insert into Fornecedor values('João','Quixeramobim',3);
+insert into Fornecedor values('Ana','Pedra branca',4);
+insert into Fornecedor values('Pedro','Morada Nova',5);
+
+insert into peca values (1,'peca1','preto');
+insert into peca values(2,'peca2','branco');
+insert into peca values(3,'peca3','cinza muito escuro');
+insert into peca values (4,'peca4','azul turquesa');
+insert into peca values(5,'peca5','verde marca texto');
+insert into peca values(6,'peca6','rosa pink');
+
+
+insert into projeto values (1,'projeto1','Fortaleza');
+insert into projeto values(2,'projeto2','Quixada');
+insert into projeto values(3,'projeto3','Quixeramobim');
+insert into projeto values (4,'projeto4','Pedra Branca');
+insert into projeto values(5,'projeto5','Morada Nova');
+
+insert into FornPecaProj values (3,3,3,300);
+insert into FornPecaProj values(2,1,4,500);
+insert into FornPecaProj values(2,1,5,450);
+insert into FornPecaProj values (2,1,1,300);
+insert into FornPecaProj values(3,2,5,200);
+insert into FornPecaProj values(1,2,5,100);
+insert into FornPecaProj values(3,1,3,200);
+
+#######################################Questões##################################
+
+a. Encontre os fornecedores que só fornecem peças para projetos em Quixadá.
+b. Encontre as peças que não são fornecidas nem pelo fornecedor ‘João Silva’ nem pela ‘Maria
+Silva’.
+c. Encontre para cada peça, a quantidade total em que ela é fornecida considerando todos os
+projetos.
+d. Encontre os fornecedores que fornecem peças usadas no projeto J1.
+e. Encontre os fornecedores que fornecem todas as peças usadas no projeto J1.
+f. Encontre as peças que são fornecidas em todos os projetos.
+g. Encontre o id dos fornecedores que fornecem a mesma peça para todos os projetos
+h. Encontre as peças que não são fornecidas em nenhum projeto.
+i. Liste os projetos que compram a peça P1 em quantidade maior que a algum outro projeto compra
+a mesma peça.
+j. Retorne as peças fornecidas pelo fornecedor F1.
+k. Encontre para cada peça fornecida: o nome da peça, a quantidade máxima e quantidade mínima
+em que esta peça é fornecida, excluindo as entregas feitas pelo fornecedor F1.
+l. Encontre os números de todas as peças que são fornecidas por mais de um fornecedor.
+m. Encontre a quantidade total fornecida por cada fornecedor. Nessa relação deve constar mesmo os
+fornecedores que não fornecem para nenhum projeto.
+n. Encontre os nomes dos fornecedores que fornecem todas as peças.
+o. Encontre o fornecedor que fornece para a maior quantidade de projetos.
+p. Encontre os números dos fornecedores que fornecem a mesma peça para todos os projetos.
+
+######################################Resposta###################################
+
+a)select distinct F.fnome
+from fornecedor F, FornPecaProj FPP1
+where not exists(
+(
+	select FPP.jid
+	from FornPecaProj FPP
+	where FPP.fid=F.fid
+)	except (
+		select J.jid
+		from projeto J
+		where J.cidade='Quixada'
+	) 
+
+)and FPP1.fid=F.fid
+
+
+b)
+select distinct P.pnome
+from peca P
+where P.pid in (
+	(
+	select P.pid
+	from peca P
+	) except (
+		select FPP.pid
+		from FornPecaProj FPP, Fornecedor F
+		where FPP.fid=F.fid and (
+			F.fnome='Maria' or F.fnome ='Joao'
+		)
+	)
+)
+
+c) select FPP.pid,Sum(FPP.qtd)
+   from FornPecaProj FPP
+   group by FPP.pid  
+
+
+d)select F.fnome 
+from fornecedor F, FornPecaProj FPP
+where FPP.fid = F.fid and FPP.pid in (
+	select FPP.pid
+	from FornPecaProj FPP, Projeto J
+	where J.jnome = 'projeto1' and FPP.jid=J.jid
+	
+)
+
+
+e)select F.fnome
+from fornecedor F
+where not exists(
+	(
+	select FPP.pid
+	from FornPecaProj FPP
+	where FPP.jid = 1 
+	) except (
+	select FPP.pid
+	from FornPecaProj FPP
+	where FPP.fid = F.fid
+		)
+	)
+
+
+f)select P.pnome
+from peca P
+where not exists(
+	(select J.jid 
+	from projeto J)
+		except
+	(select FPP.jid 
+	from FornPecaProj FPP
+	where FPP.pid=P.pid
+	)
+) 
+
+g)select distinct F.fid 
+from fornecedor F, FornPecaProj FPP
+where F.fid=FPP.fid and not exists (
+	(select FPP.jid 
+	from FornPecaProj
+	where FPP.fid = F.fid	
+	 )
+	except 
+	(select FPP1.jid 
+	from FornPecaProj FPP1 
+	where FPP.fid=f.fid and FPP.pid=FPP1.pid 
+
+	)
+
+)
+
+h)select distinct P.pnome
+from peca P
+where P.pid in (
+	(
+	select P.pid
+	from peca P
+	) except(
+		select FPP.pid
+		from FornPecaProj FPP, projeto J
+		where FPP.jid=J.jid 
+		)
+)
+
+
+i)SELECT FPP.jid
+FROM FornPecaProj FPP,peca P
+WHERE FPP.pid=P.pid 
+group by FPP.jid
+
+having sum(FPP.qtd)>some (
+select sum(FPP.qtd)
+from fornPecaProj ,peca P
+where FPP.pid=P.pid
+group by FPP.jid
+)
+
+
+j)select distinct P.pnome
+from peca P
+where P.pid in (
+	(
+	select P.pid
+	from Peca p, fornPecaProj FPP
+	where P.pid=FPP.pid and FPP.fid=1	
+		)
+)
+
+
+k)
+
+select distinct P.pnome,max(FPP.qtd),min(FPP.qtd)
+from peca P,FornPecaProj FPP
+where P.pid in (
+	(
+	select P.pid
+	from peca P
+	) except (
+		select FPP.pid
+		from FornPecaProj FPP, Fornecedor F
+		where FPP.fid=F.fid and F.fid =1
+		)
+	)
+group by P.pnome	
+#### falta relacionar P and Fpp
+
+l)
+select FPP.pid,count(distinct FPP.Fid) 
+from FornPecaProj FPP
+group by FPP.pid
+having count(distinct FPP.fid)>1 
+
+
+m)SELECT F.fid, sum(FPP.qtd)
+from Fornecedor F left outer join FornPecaProj FPP
+on F.fid=FPP.fid
+GROUP BY F.fid
+
+
+n)
+select F.fnome
+from fornecedor F
+where not exists(
+	(
+	select P.pid
+	from Peca P
+	) except (
+	select FPP.pid
+	from FornPecaProj FPP
+	where FPP.fid = F.fid
+		)
+	)
+
+o)
+SELECT FPP1.fid
+FROM FornPecaProj FPP1
+GROUP BY FPP1.fid
+HAVING  COUNT(DISTINCT FPP1.jid) > ALL(
+				    (SELECT COUNT(DISTINCT FPP.jid) 
+				    FROM FornPecaProj FPP 
+				    WHERE FPP.fid<>FPP1.fid
+				    group by FPP.fid
+				    )
+)
+
+p) 
+
+SELECT F.fid
+FROM Fornecedor F, Peca P
+WHERE NOT EXISTS (
+		(
+		SELECT J.jid 
+		FROM Projeto J
+		) EXCEPT (SELECT FPP.jid 
+			  FROM FornPecaProj FPP 
+			  WHERE FPP.fid=F.fid AND FPP.pid=P.pid))
+
+
+
+
+
+
+
+

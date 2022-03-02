@@ -1,0 +1,196 @@
+###################### Esquema Relacional#############################
+Amigo (aid: integer, anome: string, sexo: char, idade: integer)
+Presente (pid: integer, pdescricao: string, pvalor: real)
+ListaPresente (aid: integer, pid: integer, preferência: integer)
+AmigoSecreto(aid: integer, aid_amigo: integer, pid_recebido: integer)
+
+#########################Questões #####################################
+
+1. Questão 
+Defina um gatilho (“trigger”) a fim de impedir que menores de 18 participem da
+brincadeira de amigo secreto.
+
+2. Questão
+Defina um gatilho (“trigger”) a fim de impedir que a lista de presentes de um convidado
+tenha mais de dez itens e que o valor total dos presentes (soma dos valores dos presentes)
+na lista seja maior que R$ 500,00.
+
+3. Questão
+Escreva um procedimento armazenado que recebe como parâmetro de entrada o
+identificador de um amigo e escolhe (retorna) o presente mais barato que consta na lista de
+presentes do seu amigo secreto.
+
+4. Questão
+Escreva um procedimento armazenado que recebe como parâmetro de entrada o
+identificador de um presente e insere este presente na lista de preferência de todos os
+participantes (amigos), caso o presente ainda não esteja na lista do participante (amigo).
+
+#######################################################################
+
+
+CREATE TABLE Amigo(
+aid integer,
+anome varchar(45),
+sexo char,
+idade integer,
+CONSTRAINT Amigo_pkey PRIMARY KEY(aid)
+);
+
+insert into amigo values(1,'Luzia','f',23);
+insert into amigo values(2,'Marcos','m',25);
+insert into amigo values(3,'Anielson Ricardo','m',30);
+insert into amigo values(4,'Felipe','m',23);
+insert into amigo values(5,'Thiago','m',18);
+insert into amigo values(6,'Talita ','f',45);
+insert into amigo values(7,'Ticiana','f',25);
+insert into amigo values(8,'Wagner','m',26);
+
+CREATE TABLE Presente(
+pid integer,
+pdescrisao text,
+pvalor real,
+CONSTRAINT Presente_pkey PRIMARY KEY(pid)
+);
+
+insert into presente values(1,'cordao',300);
+insert into presente values(2,'relogio',250);
+insert into presente values(3,'chocolate',100);
+insert into presente values(4,'barraca',450);
+insert into presente values(5,'batom',50);
+insert into presente values(6,'game',250);
+insert into presente values(7,'capa de chuva',70);
+insert into presente values(8,'bolsa de couro',350);
+
+CREATE TABLE ListaPresente(
+aid integer,
+pid integer,
+preferencia integer,
+CONSTRAINT Lista_fkey FOREIGN KEY(aid) REFERENCES Amigo(aid),
+CONSTRAINT Lista2_fkey FOREIGN KEY(pid) REFERENCES Presente(pid),
+CONSTRAINT Lista_pkey PRIMARY KEY(aid,pid)
+);
+
+insert into ListaPresente values(1,8,1);
+insert into ListaPresente values(2,7,2);
+insert into ListaPresente values(3,6,3);
+insert into ListaPresente values(4,5,4);
+insert into ListaPresente values(5,4,5);
+insert into ListaPresente values(6,3,6);
+insert into ListaPresente values(7,2,7);
+insert into ListaPresente values(8,1,8);
+
+CREATE TABLE AmigoSecreto(
+aid integer,
+aid_amigo integer,
+pid_recebido integer,
+CONSTRAINT AmigoSecreto_fkey FOREIGN KEY(aid) REFERENCES Amigo(aid),
+CONSTRAINT AmigoSecreto2_fkey FOREIGN KEY(aid_amigo) REFERENCES Amigo(aid),
+CONSTRAINT AmigoSecreto_pkey PRIMARY KEY(aid,aid_amigo) 
+);
+
+insert into AmigoSecreto values(1,4,8);
+insert into AmigoSecreto values(2,3,7);
+insert into AmigoSecreto values(3,2,6);
+insert into AmigoSecreto values(4,1,5);
+insert into AmigoSecreto values(5,8,4);
+insert into AmigoSecreto values(6,7,3);
+insert into AmigoSecreto values(7,6,2);
+insert into AmigoSecreto values(8,5,1);
+
+
+#################################################
+
+create or replace function procedure_questao1_idade () returns  trigger AS $$
+begin
+	if new.idade < 18 then 
+		return null;
+	else return new;
+	end if;
+end
+$$ language plpgsql
+
+
+create trigger questao1_idade
+before insert or update
+on amigo
+for each row
+execute procedure procedure_questao1_idade()
+
+
+insert into amigo values(9,'callebe','m',15)
+select *from amigo
+select *from presente
+select *from amigosecreto
+
+#######################################################################
+
+CREATE OR REPLACE FUNCTION questao2_limitePresente_insert_procedure() returns TRIGGER AS $$
+DECLARE
+	qtd_presente int;
+	soma_valor_presente real;
+	valor_presente real;
+BEGIN
+	SELECT COUNT(LP.pid) into qtd_presente
+	FROM ListaPresente LP
+	WHERE LP.aid=new.aid;
+	
+	if qtd_presente<=9 then
+		SELECT SUM(P.pvalor) into soma_valor_presente
+		FROM ListaPresente LP, Presente P
+		WHERE LP.aid=new.aid and LP.pid=P.pid;
+
+		SELECT P.pvalor into valor_presente
+		FROM Presente P
+		WHERE P.pid=new.pid;
+
+		if valor_presente + soma_valor_presente<=500 then
+			return new;
+		else return null;
+		end if;
+	else return null;
+	end if;
+	END;
+$$ language plpgsql;
+
+################################################################################
+CREATE TRIGGER questao2_limitePresente_insert
+BEFORE INSERT
+ON ListaPresente
+FOR EACH ROW
+EXECUTE PROCEDURE questao2_limitePresente_insert_procedure();
+
+create or replace function procedure_questao2_update()returns trigger As $$
+declare
+	cursor1 cursor is select LP.aid
+		from listapresente LP
+		where LP.pid = new.pid;
+	id_amigo int;
+	soma_presente real;
+begin
+	open cursor1;
+	fetch cursor1 into id_amigo;
+	loop
+		exit when not found;
+		select sum(P.pvalor) into soma_presente
+		from Presente P, listapresente LP
+		where P.pid=LP.pid and LP.aid=id_amigo;
+
+		if soma_presente - old.pvalor+new.pvalor>500
+			then
+				return null;
+		end if;
+		fetch cursor1 into id_amigo;
+	end loop;	
+	close cursor1;
+	return new;
+	end;
+	$$language plpgsql;
+
+CREATE TRIGGER questao2_limitePresente_update
+BEFORE UPDATE
+ON Presente
+for each row
+EXECUTE PROCEDURE questao2_limitePresente_update_procedure();
+
+
+
